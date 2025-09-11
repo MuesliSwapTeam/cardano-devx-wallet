@@ -1,0 +1,114 @@
+/* The switch - the box around the slider */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider */
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgb(229, 233, 241);
+    /* Lighter grey for light mode */
+    transition: background-color 0.2s;
+    /* Fast transition */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 6px;
+    /* Matches px-1.5 */
+}
+
+/* The sliding circle */
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    /* White circle for light mode */
+    transition: transform 0.2s, background-color 0.2s;
+    /* Fast transition */
+    z-index: 5;
+    /* Below icons (z-10) */
+}
+
+input:checked+.slider {
+    background-color: rgb(37, 46, 64);
+    /* Darker grey for dark mode */
+}
+
+input:checked+.slider:before {
+    background-color: rgb(83, 70, 255);
+    /* Blue circle for dark mode */
+    transform: translateX(30px);
+    /* Matches your fixed value */
+}
+
+input:focus-visible+.slider {
+    box-shadow: 0 0 1px rgb(83, 70, 255);
+    /* Focus ring for keyboard navigation only */
+}
+
+/* Rounded sliders */
+.slider.round {
+    border-radius: 15px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+/* Icon colors */
+.icon-day {
+    filter: invert(29%) sepia(88%) saturate(7472%) hue-rotate(240deg) brightness(90%) contrast(94%);
+    /* Blue (rgb(83, 70, 255)) for day icon in light mode */
+}
+
+.icon-night {
+    filter: invert(100%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(100%) contrast(100%);
+    /* White for night icon in dark mode */
+}
+
+.icon-inactive {
+    filter: invert(66%) sepia(13%) saturate(16%) hue-rotate(169deg) brightness(92%) contrast(83%);
+    /* Grey for inactive icon */
+}
+
+/* Icon positioning and interaction adjustments */
+.day-icon {
+    margin-left: 2px;
+    /* Move day icon 2px to the right */
+    user-select: none;
+    /* Prevent selection */
+    -webkit-user-drag: none;
+    /* Prevent dragging in WebKit browsers */
+    user-drag: none;
+    /* Prevent dragging */
+}
+
+.night-icon {
+    margin-right: 2px;
+    /* Move night icon 2px to the left */
+    user-select: none;
+    /* Prevent selection */
+    -webkit-user-drag: none;
+    /* Prevent dragging in WebKit browsers */
+    user-drag: none;
+    /* Prevent dragging */
+}

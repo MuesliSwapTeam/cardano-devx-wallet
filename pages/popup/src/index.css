@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Disable rubberband scrolling on all scrollable elements */
+* {
+  overscroll-behavior: none;
+}
+
+/* Ensure app container fills entire height */
+#app-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 400px;
+  height: 600px;
+  overflow: hidden;
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.outer-container {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 20px;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-align: center;
+  overflow: hidden;
+}

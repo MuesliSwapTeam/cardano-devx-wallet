@@ -1,0 +1,35 @@
+{
+  "name": "@extension/wallet-manager",
+  "version": "0.3.4",
+  "description": "chrome extension - wallet business logic",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "dist/**"
+  ],
+  "main": "./dist/index.js",
+  "types": "index.ts",
+  "scripts": {
+    "clean:bundle": "rimraf dist",
+    "clean:node_modules": "pnpx rimraf node_modules",
+    "clean:turbo": "rimraf .turbo",
+    "clean": "pnpm clean:bundle && pnpm clean:node_modules && pnpm clean:turbo",
+    "ready": "node build.mjs",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "pnpm lint --fix",
+    "prettier": "prettier . --write --ignore-path ../../.prettierignore",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@extension/blockchain-provider": "workspace:*",
+    "@extension/shared": "workspace:*",
+    "@extension/storage": "workspace:*",
+    "@types/bip39": "^3.0.4",
+    "bip39": "^3.1.0",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@extension/tsconfig": "workspace:*",
+    "@types/uuid": "^10.0.0"
+  }
+}

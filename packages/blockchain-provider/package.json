@@ -1,0 +1,30 @@
+{
+  "name": "@extension/blockchain-provider",
+  "version": "0.3.4",
+  "description": "chrome extension - blockchain provider",
+  "private": true,
+  "sideEffects": false,
+  "files": [
+    "dist/**"
+  ],
+  "main": "./dist/index.js",
+  "types": "index.ts",
+  "scripts": {
+    "clean:bundle": "rimraf dist",
+    "clean:node_modules": "pnpx rimraf node_modules",
+    "clean:turbo": "rimraf .turbo",
+    "clean": "pnpm clean:bundle && pnpm clean:node_modules && pnpm clean:turbo",
+    "ready": "node build.mjs",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "pnpm lint --fix",
+    "prettier": "prettier . --write --ignore-path ../../.prettierignore",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@extension/shared": "workspace:*",
+    "@extension/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "@extension/tsconfig": "workspace:*"
+  }
+}

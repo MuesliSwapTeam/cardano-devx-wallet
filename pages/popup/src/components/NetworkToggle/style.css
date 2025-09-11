@@ -1,0 +1,126 @@
+/* Network Toggle Switch - based on ThemeToggle design */
+.network-toggle-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+/* The switch - the box around the slider */
+.network-switch {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    /* Full width like a text input */
+    height: 44px;
+    /* Taller height */
+}
+
+/* Hide default HTML checkbox */
+.network-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* The slider background */
+.network-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgb(229, 233, 241);
+    /* Light grey for light mode - same as ThemeToggle */
+    transition: background-color 0.1s;
+    /* Much faster transition */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px;
+    /* Padding to create visual border around slider */
+}
+
+/* Dark mode background using Tailwind's approach */
+:root.dark .network-slider,
+.dark .network-slider {
+    background-color: rgb(37, 46, 64);
+    /* Darker grey for dark mode - same as ThemeToggle */
+}
+
+/* The sliding pill */
+.network-slider:before {
+    position: absolute;
+    content: "";
+    height: 36px;
+    /* Smaller than container to create visual border */
+    width: calc(50% - 6px);
+    /* Half width minus padding for border effect */
+    left: 4px;
+    top: 4px;
+    background-color: rgb(83, 70, 255);
+    /* Blue circle - same as ThemeToggle */
+    transition: transform 0.1s ease-out;
+    /* Much faster animation with easing */
+    z-index: 5;
+    /* Below labels (z-10) */
+}
+
+/* Move slider to mainnet position */
+input:checked+.network-slider:before {
+    transform: translateX(calc(100% + 4px));
+    /* Move to cover mainnet label */
+}
+
+/* Focus state */
+input:focus-visible+.network-slider {
+    box-shadow: 0 0 1px rgb(83, 70, 255);
+    /* Focus ring - same as ThemeToggle */
+}
+
+/* Rounded corners */
+.network-slider.round {
+    border-radius: 22px;
+    /* Half of height for pill shape */
+}
+
+.network-slider.round:before {
+    border-radius: 18px;
+    /* Slightly less rounded for inner pill */
+}
+
+/* Label colors */
+.label-active {
+    color: white !important;
+    /* White text when covered by slider - always white regardless of theme */
+}
+
+.label-inactive {
+    color: rgb(75, 85, 99);
+    /* Grey text for inactive label in light mode */
+}
+
+/* Dark mode inactive label using Tailwind's approach */
+:root.dark .label-inactive,
+.dark .label-inactive {
+    color: rgb(229, 231, 235);
+    /* Light grey text for inactive label in dark mode */
+}
+
+/* Label positioning - centered in their respective halves */
+.network-label {
+    user-select: none;
+    /* Prevent selection */
+    pointer-events: none;
+    /* Prevent interference with click events */
+    font-weight: 500;
+    font-size: 0.75rem;
+    /* text-xs */
+    width: 50%;
+    /* Each label takes exactly half the width */
+    text-align: center;
+    /* Center text within each half */
+    position: relative;
+    z-index: 10;
+    /* Above slider */
+}

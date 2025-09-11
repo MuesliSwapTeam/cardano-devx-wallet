@@ -1,0 +1,30 @@
+{
+  "extensionDescription": {
+    "description": "DevX is the Cardano wallet made with developers in mind",
+    "message": "DevX is the Cardano wallet made with developers in mind."
+  },
+  "extensionName": {
+    "description": "DevX Wallet",
+    "message": "DevX Cardano Wallet"
+  },
+  "toggleTheme": {
+    "message": "테마 변경"
+  },
+  "loading": {
+    "message": "로딩 중..."
+  },
+  "greeting": {
+    "description": "인사 메시지",
+    "message": "안녕하세요, 제 이름은 $NAME$입니다.",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "서종학"
+      }
+    }
+  },
+  "hello": {
+    "description": "Placeholder 예시",
+    "message": "안녕 $1"
+  }
+}
