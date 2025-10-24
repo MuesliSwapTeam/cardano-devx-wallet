@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useStorage, walletsStorage } from '@extension/storage';
 import type { Wallet } from '@extension/shared';
 import type { UTXORecord, TransactionRecord } from '@extension/storage';
@@ -7,7 +7,6 @@ import { TruncateWithCopy } from '@extension/shared';
 
 const UTXODetail: React.FC = () => {
   const { walletId, txHash, outputIndex } = useParams<{ walletId: string; txHash: string; outputIndex: string }>();
-  const navigate = useNavigate();
   const walletsData = useStorage(walletsStorage);
   const wallets = walletsData?.wallets || [];
   const wallet = wallets.find((w: Wallet) => w.id === walletId);
@@ -149,12 +148,6 @@ const UTXODetail: React.FC = () => {
   if (loading) {
     return (
       <div className="p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-            ← Back
-          </button>
-          <h2 className="text-lg font-semibold">UTXO Details</h2>
-        </div>
         <div className="flex items-center justify-center py-8">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <div className="size-4 animate-spin rounded-full border-2 border-gray-400 border-t-transparent"></div>
@@ -168,12 +161,6 @@ const UTXODetail: React.FC = () => {
   if (error || !utxo || !wallet) {
     return (
       <div className="p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <button onClick={() => navigate(-1)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-            ← Back
-          </button>
-          <h2 className="text-lg font-semibold">UTXO Details</h2>
-        </div>
         <div className="text-sm text-red-500">{error || (!wallet ? 'Wallet not found' : 'UTXO not found')}</div>
       </div>
     );
@@ -185,12 +172,9 @@ const UTXODetail: React.FC = () => {
   return (
     <div className="mx-auto max-w-2xl p-4">
       {/* Header */}
-      <div className="mb-6 flex items-center gap-2">
-        <button onClick={() => navigate(-1)} className="text-sm text-blue-600 hover:underline dark:text-blue-400">
-          ← Back
-        </button>
+      <div className="relative mb-6 flex items-center justify-center">
         <h2 className="text-lg font-semibold">UTXO Details</h2>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="absolute right-0 flex items-center gap-2">
           {utxo.isExternal && (
             <div className="rounded-full bg-orange-100 px-3 py-1 text-sm text-orange-800 dark:bg-orange-900 dark:text-orange-200">
               External
@@ -207,7 +191,7 @@ const UTXODetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Basic Information */}
         <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
           <h3 className="mb-3 text-base font-bold text-gray-900 dark:text-white">Basic Information</h3>
@@ -223,10 +207,6 @@ const UTXODetail: React.FC = () => {
             <div className="flex items-center justify-between">
               <strong className="text-gray-600 dark:text-gray-400">Address:</strong>
               <TruncateWithCopy text={utxo.address} maxChars={10} />
-            </div>
-            <div className="flex items-center justify-between">
-              <strong className="text-gray-600 dark:text-gray-400">Block:</strong>
-              <TruncateWithCopy text={utxo.block} maxChars={10} />
             </div>
           </div>
         </div>
@@ -352,33 +332,49 @@ const UTXODetail: React.FC = () => {
           <div className="grid grid-cols-1 gap-3 text-sm">
             {/* Creating Transaction */}
             <div className="border-l-4 border-green-500 pl-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <strong className="text-green-700 dark:text-green-300">Created by Transaction:</strong>
-                  {creatingTransaction && (
-                    <div className="mt-1 text-xs text-gray-500">
-                      {formatDate(creatingTransaction.block_time)} • Block #{creatingTransaction.block_height}
-                    </div>
-                  )}
-                </div>
-                <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
+              <div className="mb-2 text-left">
+                <strong className="text-green-700 dark:text-green-300">Created by Transaction:</strong>
               </div>
+              {creatingTransaction && (
+                <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="flex justify-between">
+                    <span>Hash:</span>
+                    <TruncateWithCopy text={utxo.tx_hash} maxChars={10} />
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Timestamp:</span>
+                    <span>{formatDate(creatingTransaction.block_time)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Block:</span>
+                    <TruncateWithCopy text={`#${creatingTransaction.block_height}`} maxChars={15} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Spending Transaction */}
             {utxo.isSpent && utxo.spentInTx && (
               <div className="border-l-4 border-red-500 pl-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <strong className="text-red-700 dark:text-red-300">Spent by Transaction:</strong>
-                    {spendingTransaction && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        {formatDate(spendingTransaction.block_time)} • Block #{spendingTransaction.block_height}
-                      </div>
-                    )}
-                  </div>
-                  <TruncateWithCopy text={utxo.spentInTx} maxChars={10} />
+                <div className="mb-2 text-left">
+                  <strong className="text-red-700 dark:text-red-300">Spent by Transaction:</strong>
                 </div>
+                {spendingTransaction && (
+                  <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex justify-between">
+                      <span>Hash:</span>
+                      <TruncateWithCopy text={utxo.spentInTx} maxChars={10} />
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Timestamp:</span>
+                      <span>{formatDate(spendingTransaction.block_time)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Block:</span>
+                      <TruncateWithCopy text={`#${spendingTransaction.block_height}`} maxChars={15} />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

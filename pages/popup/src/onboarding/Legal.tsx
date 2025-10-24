@@ -11,14 +11,13 @@ import { PrimaryButton } from '@src/components/buttons';
 function Legal() {
   const navigate = useNavigate();
   const warningIconUrl = chrome.runtime.getURL('warning.svg');
-  const [countdown, setCountdown] = useState(1);
+  const [countdown, setCountdown] = useState(3);
   const [buttonEnabled, setButtonEnabled] = useState(false);
 
   // Initialize onboarding state and start countdown on component mount
   useEffect(() => {
     const initOnboarding = async () => {
       await onboardingStorage.goToStep('legal');
-      await onboardingStorage.setCurrentRoute('/onboarding/legal');
     };
     initOnboarding();
 
@@ -71,11 +70,11 @@ function Legal() {
         {/* Legal Text at the very bottom */}
         <p className="my-4 text-center">
           By continuing, you agree to our
-          <a href="#" className="ml-1 text-blue-600 hover:underline">
+          <a href="https://muesliswap.com/terms" className="ml-1 text-blue-600 hover:underline">
             Terms of Service
           </a>{' '}
           and
-          <a href="#" className="ml-1 text-blue-600 hover:underline">
+          <a href="https://muesliswap.com/privacy" className="ml-1 text-blue-600 hover:underline">
             Privacy Policy
           </a>
           .

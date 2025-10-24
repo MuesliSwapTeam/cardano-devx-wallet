@@ -6,7 +6,7 @@ const NoWallets = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-full flex-col items-center justify-center text-center p-6">
+    <div className="flex h-full flex-col items-center justify-center p-6 text-center">
       <div className="mb-8">
         <div className="mb-4 flex justify-center">
           <div className="flex size-16 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/20">

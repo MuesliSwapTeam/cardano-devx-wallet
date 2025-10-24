@@ -5,14 +5,19 @@ import * as Yup from 'yup';
 import { CancelButton, PrimaryButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
 import NetworkToggle from '@src/components/NetworkToggle';
-import { onboardingStorage, useStorage } from '@extension/storage';
-import { generateMnemonic, deriveAddressFromMnemonic, generateRootKeyFromMnemonic } from '../utils/crypto';
+import { onboardingStorage, settingsStorage, useStorage } from '@extension/storage';
+import { createWallet } from '../utils/walletOperations';
 
-interface CreateNewWalletProps {}
-
-const CreateNewWallet = ({}: CreateNewWalletProps) => {
+const CreateWalletForm = () => {
   const navigate = useNavigate();
+  const settings = useStorage(settingsStorage);
   const onboardingState = useStorage(onboardingStorage);
+
+  // Helper function to check if we have the required API key for the network
+  const hasRequiredApiKey = (network: 'Mainnet' | 'Preprod') => {
+    if (!settings) return false;
+    return network === 'Mainnet' ? !!settings.mainnetApiKey : !!settings.preprodApiKey;
+  };
 
   const validationSchema = Yup.object({
     walletName: Yup.string().required('Wallet name is required'),
@@ -49,7 +54,6 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
       }
       await onboardingStorage.setCurrentFlow('create');
       await onboardingStorage.goToStep('create-form');
-      await onboardingStorage.setCurrentRoute('/create-new-wallet');
     };
     initOnboarding();
   }, []);
@@ -63,65 +67,31 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
         password: values.skipPassword ? undefined : values.walletPassword,
       });
 
-      console.log('UI: Generating mnemonic and deriving address...');
+      // Check if we have the required API key for the selected network
+      if (!hasRequiredApiKey(values.network)) {
+        // Update to API key setup step
+        await onboardingStorage.goToStep('api-key-setup');
+        await onboardingStorage.updateApiKeySetupData({
+          network: values.network,
+          requiredFor: 'create',
+        });
 
-      // Generate mnemonic and derive address in frontend (popup context)
-      const seedPhrase = await generateMnemonic();
-      const { address, stakeAddress } = await deriveAddressFromMnemonic(seedPhrase, values.network);
-      const rootKey = await generateRootKeyFromMnemonic(seedPhrase);
+        // Navigate to API key setup step
+        navigate('/create-new-wallet/api-key');
+        return;
+      }
 
-      console.log('UI: Generated seedPhrase, address, stakeAddress, and rootKey successfully');
-
-      // Update onboarding state with generated data
-      await onboardingStorage.updateCreateFormData({
-        ...values,
-        seedPhrase: seedPhrase,
-      });
-
-      // Prepare the data payload with crypto operations completed
-      const payload = {
-        name: values.walletName,
-        network: values.network,
-        password: values.skipPassword ? undefined : values.walletPassword,
-        seedPhrase: seedPhrase,
-        address: address,
-        stakeAddress: stakeAddress,
-        rootKey: rootKey,
-      };
-
-      console.log('UI: Sending CREATE_WALLET message with payload:', payload);
-
-      // Send the complete data to the background script for storage
-      chrome.runtime.sendMessage(
+      // We have the API key, proceed with wallet creation
+      await createWallet(
         {
-          type: 'CREATE_WALLET',
-          payload: payload,
+          walletName: values.walletName,
+          network: values.network,
+          password: values.skipPassword ? undefined : values.walletPassword,
         },
-        // Handle the response from the background script
-        response => {
-          // Check for errors during message sending itself
-          if (chrome.runtime.lastError) {
-            console.error('Message sending failed:', chrome.runtime.lastError.message);
-            // TODO: Display an error message to the user
-            return;
-          }
-
-          // Handle the response from our background logic
-          if (response?.success) {
-            console.log('UI: Wallet created successfully!', response.wallet);
-            // Mark onboarding as complete and clear form data
-            onboardingStorage.goToStep('success');
-            onboardingStorage.clearFormData('create');
-            navigate('/create-new-wallet-success');
-          } else {
-            console.error('UI: Failed to create wallet:', response?.error);
-            // TODO: Display a meaningful error message to the user
-          }
-        },
+        navigate,
       );
     } catch (error) {
       console.error('UI: Failed to generate wallet data:', error);
-      // TODO: Display error message to user
     }
   };
 
@@ -130,6 +100,15 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
     await onboardingStorage.goToStep('select-method');
     navigate('/add-wallet');
   };
+
+  // Loading state
+  if (!settings) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col items-center">
@@ -244,4 +223,4 @@ const CreateNewWallet = ({}: CreateNewWalletProps) => {
   );
 };
 
-export default CreateNewWallet;
+export default CreateWalletForm;

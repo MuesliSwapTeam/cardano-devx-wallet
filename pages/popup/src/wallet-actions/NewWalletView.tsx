@@ -11,7 +11,6 @@ const AddWallet = () => {
   useEffect(() => {
     const updateOnboardingState = async () => {
       await onboardingStorage.goToStep('select-method');
-      await onboardingStorage.setCurrentRoute('/add-wallet');
     };
     updateOnboardingState();
   }, []);
@@ -35,7 +34,7 @@ const AddWallet = () => {
 
       {/* Existing Wallet Section */}
       <div className="mt-10 flex w-full flex-col items-center space-y-4">
-        <SecondaryButton onClick={() => navigate('/import-wallet-from-seed-phrase')} className="w-3/5">
+        <SecondaryButton onClick={() => navigate('/import-wallet')} className="w-3/5">
           Import from Seed Phrase
         </SecondaryButton>
 

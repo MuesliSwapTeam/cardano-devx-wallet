@@ -1,12 +1,12 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Formik, Form, ErrorMessage, Field } from 'formik';
 import * as Yup from 'yup';
 import { useState, useEffect } from 'react';
 import { PrimaryButton, CancelButton } from '@src/components/buttons';
 import FloatingLabelInput from '@src/components/FloatingLabelInput';
 import NetworkToggle from '@src/components/NetworkToggle';
-import ApiKeySetup from '@src/components/ApiKeySetup';
 import { settingsStorage, useStorage, onboardingStorage } from '@extension/storage';
+import { spoofWallet } from '../utils/walletOperations';
 
 interface IFormValues {
   walletName: string;
@@ -14,17 +14,10 @@ interface IFormValues {
   network: 'Mainnet' | 'Preprod';
 }
 
-const SpoofWallet = () => {
+const SpoofWalletForm = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const settings = useStorage(settingsStorage);
   const onboardingState = useStorage(onboardingStorage);
-  const [showApiKeySetup, setShowApiKeySetup] = useState(false);
-  const [pendingFormValues, setPendingFormValues] = useState<IFormValues | null>(null);
-
-  // Check if we should show API key setup based on route query
-  const urlParams = new URLSearchParams(location.search);
-  const shouldShowApiKeySetup = urlParams.get('step') === 'api-key-setup';
 
   const validationSchema = Yup.object({
     walletName: Yup.string().required('Wallet name is required.'),
@@ -62,27 +55,10 @@ const SpoofWallet = () => {
         await onboardingStorage.startOnboarding('spoof');
       }
       await onboardingStorage.setCurrentFlow('spoof');
-
-      // Set appropriate step and route based on URL parameter
-      if (shouldShowApiKeySetup) {
-        await onboardingStorage.goToStep('api-key-setup');
-        await onboardingStorage.setCurrentRoute('/spoof-wallet?step=api-key-setup');
-        setShowApiKeySetup(true);
-        // Restore form values if they exist
-        if (onboardingState?.spoofFormData.walletName && onboardingState?.spoofFormData.walletAddress) {
-          setPendingFormValues({
-            walletName: onboardingState.spoofFormData.walletName,
-            walletAddress: onboardingState.spoofFormData.walletAddress,
-            network: onboardingState.spoofFormData.network || 'Preprod',
-          });
-        }
-      } else {
-        await onboardingStorage.goToStep('spoof-form');
-        await onboardingStorage.setCurrentRoute('/spoof-wallet');
-      }
+      await onboardingStorage.goToStep('spoof-form');
     };
     initOnboarding();
-  }, [shouldShowApiKeySetup]);
+  }, []);
 
   const handleCancel = async () => {
     // Rollback to select-method step
@@ -107,99 +83,30 @@ const SpoofWallet = () => {
 
     // Check if we have the required API key for the selected network
     if (!hasRequiredApiKey(values.network)) {
-      // Store form values and show API key setup
-      setPendingFormValues(values);
-      setShowApiKeySetup(true);
       actions.setSubmitting(false);
 
-      // Update to API key setup step and set a special route for API key within spoof
+      // Update to API key setup step
       await onboardingStorage.goToStep('api-key-setup');
-      await onboardingStorage.setCurrentRoute('/spoof-wallet?step=api-key-setup');
       await onboardingStorage.updateApiKeySetupData({
         network: values.network,
         requiredFor: 'spoof',
       });
+
+      // Navigate to API key setup step
+      navigate('/spoof-wallet/api-key');
       return;
     }
 
     // We have the API key, proceed with spoofing
-    submitSpoofWallet(values, actions);
-  };
-
-  const submitSpoofWallet = (
-    values: IFormValues,
-    actions: {
-      setSubmitting: (isSubmitting: boolean) => void;
-      setFieldError: (field: string, message: string) => void;
-    },
-  ) => {
-    const payload = {
-      name: values.walletName,
-      address: values.walletAddress,
-      network: values.network,
-    };
-
-    console.log('Spoofing wallet with payload:', payload);
-
-    chrome.runtime.sendMessage(
+    await spoofWallet(
       {
-        type: 'SPOOF_WALLET',
-        payload: payload,
+        walletName: values.walletName,
+        network: values.network,
+        walletAddress: values.walletAddress,
       },
-      response => {
-        actions.setSubmitting(false);
-
-        if (chrome.runtime.lastError) {
-          actions.setFieldError('walletAddress', 'An unexpected error occurred. Please try again.');
-          return;
-        }
-
-        if (response?.success) {
-          // Mark onboarding as complete and clear form data
-          onboardingStorage.goToStep('success');
-          onboardingStorage.clearFormData('spoof');
-          navigate('/spoof-wallet-success');
-        } else {
-          console.log('Spoof wallet response error:', response?.error);
-          actions.setFieldError('walletAddress', response?.error || 'Failed to spoof wallet.');
-        }
-      },
+      navigate,
     );
-  };
-
-  const handleApiKeySetupComplete = async () => {
-    setShowApiKeySetup(false);
-
-    // Go back to spoof form step and update route
-    await onboardingStorage.goToStep('spoof-form');
-    await onboardingStorage.setCurrentRoute('/spoof-wallet');
-
-    // Navigate back to clean spoof route
-    navigate('/spoof-wallet', { replace: true });
-
-    // If we have pending form values, submit the spoof wallet now
-    if (pendingFormValues) {
-      const mockActions = {
-        setSubmitting: (_isSubmitting: boolean) => {},
-        setFieldError: (field: string, error: string) => {
-          console.error(`Field error on ${field}: ${error}`);
-        },
-      };
-      submitSpoofWallet(pendingFormValues, mockActions);
-      setPendingFormValues(null);
-    }
-  };
-
-  const handleApiKeySetupCancel = async () => {
-    setShowApiKeySetup(false);
-    setPendingFormValues(null);
-
-    // Go back to spoof form step and update route
-    await onboardingStorage.goToStep('spoof-form');
-    await onboardingStorage.setCurrentRoute('/spoof-wallet');
-
-    // Navigate back to clean spoof route
-    navigate('/spoof-wallet', { replace: true });
+    actions.setSubmitting(false);
   };
 
   // Loading state
@@ -208,20 +115,6 @@ const SpoofWallet = () => {
       <div className="flex h-full items-center justify-center">
         <p>Loading...</p>
       </div>
-    );
-  }
-
-  // Show API key setup screen if needed
-  if ((showApiKeySetup || shouldShowApiKeySetup) && (pendingFormValues || shouldShowApiKeySetup)) {
-    const networkForApiKey = pendingFormValues?.network || onboardingState?.spoofFormData.network || 'Preprod';
-    return (
-      <ApiKeySetup
-        network={networkForApiKey}
-        onComplete={handleApiKeySetupComplete}
-        onCancel={handleApiKeySetupCancel}
-        title="API Key Required for Spoof Wallet"
-        subtitle={`Please enter your ${networkForApiKey} API key to continue creating the spoof wallet.`}
-      />
     );
   }
 
@@ -306,4 +199,4 @@ const SpoofWallet = () => {
   );
 };
 
-export default SpoofWallet;
+export default SpoofWalletForm;

@@ -131,7 +131,7 @@ export const handleWalletMessages = async (
         }
 
         try {
-          const result = await performTransactionSync(wallet, (current, total, message) => {
+          const result = await performTransactionSync(wallet, (current, total, message, phase, newItemsCount) => {
             // Send progress updates to UI
             chrome.runtime.sendMessage({
               type: 'SYNC_PROGRESS',
@@ -140,6 +140,8 @@ export const handleWalletMessages = async (
                 current,
                 total,
                 message: message || `Downloading transactions... ${current}/${total}`,
+                phase: phase || 'downloading',
+                newItemsCount: newItemsCount || 0,
               },
             });
           });
@@ -339,11 +341,21 @@ async function getPaymentAddresses(apiUrl: string, apiKey: string, stakeAddress:
 // Main sync function
 async function performTransactionSync(
   wallet: Wallet,
-  onProgress?: (current: number, total: number, message?: string) => void,
+  onProgress?: (current: number, total: number, message?: string, phase?: string, newItemsCount?: number) => void,
 ) {
   const settings = await settingsStorage.get();
   const lastBlock = settings.lastSyncBlock?.[wallet.id] || 0;
   console.log(`Sync starting for wallet ${wallet.id}, lastBlock: ${lastBlock}`);
+
+  // Get existing transactions to identify what's new
+  const existingTransactions = await transactionsStorage.getWalletTransactions(wallet.id);
+  const existingTxHashes = new Set(existingTransactions.map(tx => tx.hash));
+  console.log(`Found ${existingTransactions.length} existing transactions`);
+
+  // Start with checking phase
+  if (onProgress) {
+    onProgress(0, 0, 'Checking for updates...', 'checking');
+  }
 
   // Get API config
   const { apiUrl, apiKey } = await getApiConfig(wallet);
@@ -353,7 +365,10 @@ async function performTransactionSync(
   console.log(`Found ${paymentAddresses.length} payment addresses:`, paymentAddresses);
 
   if (paymentAddresses.length === 0) {
-    // No addresses yet - return empty result
+    // No addresses yet - show complete status
+    if (onProgress) {
+      onProgress(0, 0, 'Up to date', 'complete', 0);
+    }
     return {
       success: true,
       transactions: [],
@@ -363,7 +378,6 @@ async function performTransactionSync(
 
   // Fetch all transaction hashes
   const allTransactionHashes = new Set<string>();
-  let totalTxCount = 0;
 
   for (const address of paymentAddresses) {
     let url = `${apiUrl}/addresses/${address}/transactions?order=asc&count=100`;
@@ -392,7 +406,6 @@ async function performTransactionSync(
       if (txs.length === 0) break;
 
       txs.forEach(tx => allTransactionHashes.add(tx.tx_hash));
-      totalTxCount = allTransactionHashes.size;
 
       if (txs.length < 100) break; // Last page
       page++;
@@ -401,15 +414,39 @@ async function performTransactionSync(
 
   console.log(`Total transaction hashes collected: ${allTransactionHashes.size}`);
 
-  // Fetch transaction details
+  // Identify new transactions
+  const newTransactionHashes = Array.from(allTransactionHashes).filter(hash => !existingTxHashes.has(hash));
+  console.log(`Found ${newTransactionHashes.length} new transactions out of ${allTransactionHashes.size} total`);
+
+  // If no new transactions, complete immediately
+  if (newTransactionHashes.length === 0) {
+    if (onProgress) {
+      onProgress(0, 0, 'Up to date', 'complete', 0);
+    }
+    const allStoredTransactions = await transactionsStorage.getWalletTransactions(wallet.id);
+    const allUTXOs = await transactionsStorage.getWalletUTXOs(wallet.id);
+    return {
+      success: true,
+      transactions: allStoredTransactions,
+      utxos: allUTXOs,
+    };
+  }
+
+  // Fetch only new transaction details
   const transactions: Transaction[] = [];
   let highestBlock = lastBlock;
   let processedCount = 0;
 
-  for (const txHash of Array.from(allTransactionHashes)) {
+  for (const txHash of newTransactionHashes) {
     processedCount++;
-    if (onProgress && totalTxCount > 0) {
-      onProgress(processedCount, totalTxCount, 'Updating...');
+    if (onProgress) {
+      onProgress(
+        processedCount,
+        newTransactionHashes.length,
+        `Downloading ${processedCount}/${newTransactionHashes.length}`,
+        'downloading',
+        newTransactionHashes.length,
+      );
     }
 
     // Fetch transaction details AND UTXO data
@@ -643,6 +680,17 @@ async function performTransactionSync(
   console.log(
     `Sync complete for wallet ${wallet.id}: ${allStoredTransactions.length} transactions, ${allUTXOs.length} UTXOs`,
   );
+
+  // Send completion status
+  if (onProgress) {
+    onProgress(
+      newTransactionHashes.length,
+      newTransactionHashes.length,
+      'Up to date',
+      'complete',
+      newTransactionHashes.length,
+    );
+  }
 
   return {
     success: true,

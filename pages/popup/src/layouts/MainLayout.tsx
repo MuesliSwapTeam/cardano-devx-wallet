@@ -1,6 +1,6 @@
 // popup/src/layouts/MainLayout.tsx
 import { useState, useEffect } from 'react';
-import { Link, Outlet, useNavigate, useParams } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useStorage, settingsStorage, walletsStorage } from '@extension/storage';
 import WalletDropdown from '../components/WalletDropdown';
 import { PrimaryButton, SecondaryButton } from '@src/components/buttons';
@@ -8,8 +8,12 @@ import { useBalanceSync } from '@src/hooks/useBalanceSync';
 import type { Wallet } from '@extension/shared';
 
 function MainLayout() {
-  const { walletId, view = 'assets' } = useParams();
+  const { walletId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+
+  // Get current view from pathname
+  const view = location.pathname.split('/').pop() || 'assets';
   const [isExpanded, setIsExpanded] = useState(false);
   const settings = useStorage(settingsStorage);
   const walletsData = useStorage(walletsStorage);
@@ -45,7 +49,7 @@ function MainLayout() {
   const handleWalletSelect = async (newWalletId: string) => {
     // Update the active wallet in storage
     await walletsStorage.setActiveWallet(newWalletId);
-    // Navigate to the wallet page
+    // Navigate to the wallet page, keeping current view
     navigate(`/wallet/${newWalletId}/${view}`);
   };
 
@@ -166,7 +170,7 @@ function MainLayout() {
             </div>
           </div>
         </div>
-        <main className="flex-1 overflow-y-auto p-4">
+        <main className="flex-1 overflow-y-auto px-4 pb-4">
           <Outlet />
         </main>
       </div>

@@ -10,7 +10,9 @@ import SubPageLayout from './layouts/SubPageLayout';
 import WalletActionLayout from './layouts/WalletActionLayout';
 
 // Views
-import WalletView from './wallet/WalletView';
+import AssetsView from './wallet/AssetsView';
+import TransactionsView from './wallet/TransactionsView';
+import UTXOsViewWrapper from './wallet/UTXOsViewWrapper';
 import UTXODetail from './wallet/UTXODetail';
 import Settings from './Settings';
 import SpoofedWalletInfo from './info/SpoofedWalletInfo';
@@ -23,13 +25,20 @@ import Legal from './onboarding/Legal';
 
 // Wallet Action Pages
 import AddWallet from './wallet-actions/NewWalletView';
-import CreateNew from './wallet-actions/CreateNew';
 import CreateSuccess from './wallet-actions/CreateSuccess';
-import ImportSeed from './wallet-actions/ImportSeed';
 import ImportSuccess from './wallet-actions/ImportSuccess';
-import Spoof from './wallet-actions/Spoof';
 import SpoofSuccess from './wallet-actions/SpoofSuccess';
 import WalletSettings from './wallet-actions/WalletSettings';
+
+// Split Component Imports for Clean Routing
+import CreateWalletForm from './wallet-actions/CreateWalletForm';
+import CreateWalletApiKey from './wallet-actions/CreateWalletApiKey';
+import ImportSelectWords from './wallet-actions/ImportSelectWords';
+import ImportEnterPhrase from './wallet-actions/ImportEnterPhrase';
+import ImportWalletDetails from './wallet-actions/ImportWalletDetails';
+import ImportWalletApiKey from './wallet-actions/ImportWalletApiKey';
+import SpoofWalletForm from './wallet-actions/SpoofWalletForm';
+import SpoofWalletApiKey from './wallet-actions/SpoofWalletApiKey';
 
 // Component to handle navigation messages (must be inside Router)
 function NavigationHandler() {
@@ -71,20 +80,31 @@ function App() {
       return onboardingState.currentRoute;
     }
 
+    const currentStep = onboardingState.currentStep;
+
+    // Special handling for api-key-setup step - redirect to correct API key route
+    if (currentStep === 'api-key-setup' && onboardingState.apiKeySetupData?.requiredFor) {
+      const apiKeyRoutes = {
+        create: '/create-new-wallet/api-key',
+        import: '/import-wallet/api-key',
+        spoof: '/spoof-wallet/api-key',
+      };
+      return apiKeyRoutes[onboardingState.apiKeySetupData.requiredFor] || '/spoof-wallet/api-key';
+    }
+
     // Fallback mapping for older sessions that don't have currentRoute
     const stepRouteMap = {
       welcome: '/onboarding',
       legal: '/onboarding/legal',
       'select-method': '/add-wallet',
       'create-form': '/create-new-wallet',
-      'import-form': '/import-wallet-from-seed-phrase',
+      'import-form': '/import-wallet',
       'spoof-form': '/spoof-wallet',
-      'api-key-setup': '/spoof-wallet', // Fallback case
+      'api-key-setup': '/spoof-wallet/api-key', // Final fallback if requiredFor is missing
       success: '/onboarding',
       completed: '/onboarding',
     };
 
-    const currentStep = onboardingState.currentStep;
     return stepRouteMap[currentStep] || '/onboarding';
   };
 
@@ -142,12 +162,23 @@ function App() {
             {/* Wallet Action Flows */}
             <Route element={<WalletActionLayout />}>
               <Route path="/add-wallet" element={<AddWallet />} />
-              <Route path="/create-new-wallet" element={<CreateNew />} />
-              <Route path="/create-new-wallet-success" element={<CreateSuccess />} />
-              <Route path="/import-wallet-from-seed-phrase" element={<ImportSeed />} />
-              <Route path="/import-wallet-from-seed-phrase-success" element={<ImportSuccess />} />
-              <Route path="/spoof-wallet" element={<Spoof />} />
-              <Route path="/spoof-wallet-success" element={<SpoofSuccess />} />
+
+              {/* Create Wallet Flow */}
+              <Route path="/create-new-wallet" element={<CreateWalletForm />} />
+              <Route path="/create-new-wallet/api-key" element={<CreateWalletApiKey />} />
+              <Route path="/create-new-wallet/success" element={<CreateSuccess />} />
+
+              {/* Import Wallet Flow */}
+              <Route path="/import-wallet" element={<ImportSelectWords />} />
+              <Route path="/import-wallet/enter/:wordCount" element={<ImportEnterPhrase />} />
+              <Route path="/import-wallet/details" element={<ImportWalletDetails />} />
+              <Route path="/import-wallet/api-key" element={<ImportWalletApiKey />} />
+              <Route path="/import-wallet/success" element={<ImportSuccess />} />
+
+              {/* Spoof Wallet Flow */}
+              <Route path="/spoof-wallet" element={<SpoofWalletForm />} />
+              <Route path="/spoof-wallet/api-key" element={<SpoofWalletApiKey />} />
+              <Route path="/spoof-wallet/success" element={<SpoofSuccess />} />
             </Route>
 
             {/* Sub-Pages (Settings) */}
@@ -167,8 +198,11 @@ function App() {
             </Route>
 
             {/* Main Application */}
-            <Route path="/wallet/:walletId/:view" element={<MainLayout />}>
-              <Route index element={<WalletView />} />
+            <Route path="/wallet/:walletId" element={<MainLayout />}>
+              <Route path="assets" element={<AssetsView />} />
+              <Route path="transactions" element={<TransactionsView />} />
+              <Route path="utxos" element={<UTXOsViewWrapper />} />
+              <Route index element={<Navigate to="assets" replace />} />
             </Route>
 
             {/* Fallback Redirect */}

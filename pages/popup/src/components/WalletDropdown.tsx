@@ -145,7 +145,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-xs italic text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <div className="px-3 py-2 text-xs italic text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300">
               No wallets in this network
             </div>
           )}
@@ -200,7 +200,7 @@ function WalletDropdown({ currentWalletId, onSelectWallet }: WalletDropdownProps
               </div>
             ))
           ) : (
-            <div className="px-3 py-2 text-xs italic text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+            <div className="px-3 py-2 text-xs italic text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300">
               No wallets in this network
             </div>
           )}

@@ -16,7 +16,6 @@ const Welcome = () => {
     const initOnboarding = async () => {
       await onboardingStorage.startOnboarding();
       await onboardingStorage.goToStep('welcome');
-      await onboardingStorage.setCurrentRoute('/onboarding');
     };
     initOnboarding();
   }, []);

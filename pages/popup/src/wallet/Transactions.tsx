@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Wallet } from '@extension/shared';
-import type { UTXORecord } from '@extension/storage';
-import type { TransactionRecord } from '@extension/storage';
+import type { UTXORecord, TransactionRecord } from '@extension/storage';
 import { TruncateWithCopy } from '@extension/shared';
 import TransactionDetail from './TransactionDetail';
 
@@ -20,6 +19,45 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
     return new Date(timestamp * 1000).toLocaleString();
   };
 
+  const formatDateToDay = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Check if it's today
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    }
+
+    // Check if it's yesterday
+    if (date.toDateString() === yesterday.toDateString()) {
+      return 'Yesterday';
+    }
+
+    // Otherwise, return formatted date
+    return date.toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  const groupTransactionsByDay = (transactions: TransactionRecord[]) => {
+    const groups: { [key: string]: TransactionRecord[] } = {};
+
+    transactions.forEach(tx => {
+      const dayKey = formatDateToDay(tx.block_time);
+      if (!groups[dayKey]) {
+        groups[dayKey] = [];
+      }
+      groups[dayKey].push(tx);
+    });
+
+    return groups;
+  };
+
   const formatAda = (lovelace: string) => {
     return (parseInt(lovelace) / 1000000).toFixed(6) + ' ADA';
   };
@@ -33,7 +71,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
         bytes[i / 2] = parseInt(nameHex.substr(i, 2), 16);
       }
       let name = '';
-      for (let byte of bytes) {
+      for (const byte of bytes) {
         if (byte === 0) break;
         name += String.fromCharCode(byte);
       }
@@ -147,8 +185,23 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
     return false;
   });
 
-  // Get visible transactions
-  const visibleTransactions = filteredTransactions.slice(0, itemsToShow);
+  // Group filtered transactions by day
+  const groupedTransactions = groupTransactionsByDay(filteredTransactions);
+
+  // Get visible transactions with proper grouping
+  let totalShown = 0;
+  const visibleGroups: { [key: string]: TransactionRecord[] } = {};
+
+  for (const [dayKey, dayTransactions] of Object.entries(groupedTransactions)) {
+    const remainingToShow = itemsToShow - totalShown;
+    if (remainingToShow <= 0) break;
+
+    const transactionsToShow = dayTransactions.slice(0, remainingToShow);
+    if (transactionsToShow.length > 0) {
+      visibleGroups[dayKey] = transactionsToShow;
+      totalShown += transactionsToShow.length;
+    }
+  }
 
   // Reset items when search changes
   useEffect(() => {
@@ -178,10 +231,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
 
   return (
     <div>
-      <div className="mb-2 border-b border-gray-300 pb-2 dark:border-gray-600">
-        <div className="mb-2">
-          <h3 className="text-md font-semibold">Transactions</h3>
-        </div>
+      <div className="mb-2 pt-4 pb-2">
         <input
           type="text"
           placeholder="Search transactions (hash, address, block, etc.)"
@@ -191,7 +241,7 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
         />
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-4">
         {filteredTransactions.length === 0 && searchQuery.trim() ? (
           <div className="py-8 text-center">
             <div className="text-sm text-gray-500">No transactions match your search for "{searchQuery}"</div>
@@ -200,44 +250,56 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
             </button>
           </div>
         ) : (
-          visibleTransactions.map((tx, index) => {
-            const netAssets = computeNetAssets(tx);
-            const sortedUnits = Object.keys(netAssets).sort((a, b) =>
-              a === 'lovelace' ? -1 : b === 'lovelace' ? 1 : 0,
-            );
-            return (
-              <div key={tx.hash || index} className="rounded-lg border border-gray-200 dark:border-gray-700">
-                <div
-                  className="cursor-pointer p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
-                  onClick={() => toggleExpanded(tx.hash)}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex flex-col">
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{formatDate(tx.block_time)}</div>
-                      <div className="text-xs text-gray-400 dark:text-gray-500">Block #{tx.block_height}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-mono text-xs text-gray-400 dark:text-gray-500">
-                        <TruncateWithCopy text={tx.hash} maxChars={10} />
-                      </div>
-                    </div>
-                  </div>
-                  {Object.keys(netAssets).length > 0 && (
-                    <div className="mt-1 space-y-1">
-                      {sortedUnits.map(unit => (
-                        <div key={unit} className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {getAssetDisplay(unit, netAssets[unit], formatAda)}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {expandedTx === tx.hash && (
-                  <TransactionDetail tx={tx} wallet={wallet} formatAda={formatAda} formatDate={formatDate} />
-                )}
+          Object.entries(visibleGroups).map(([dayKey, dayTransactions]) => (
+            <div key={dayKey} className="space-y-2">
+              {/* Day Header */}
+              <div className="sticky top-0 z-10 bg-slate-50 pb-2 dark:bg-gray-800">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{dayKey}</h4>
               </div>
-            );
-          })
+
+              {/* Transactions for this day */}
+              <div className="space-y-2">
+                {dayTransactions.map((tx, index) => {
+                  const netAssets = computeNetAssets(tx);
+                  const sortedUnits = Object.keys(netAssets).sort((a, b) =>
+                    a === 'lovelace' ? -1 : b === 'lovelace' ? 1 : 0,
+                  );
+                  return (
+                    <div key={tx.hash || index} className="rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div
+                        className="cursor-pointer p-3 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        onClick={() => toggleExpanded(tx.hash)}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex flex-col">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{formatDate(tx.block_time)}</div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500">Block #{tx.block_height}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                              <TruncateWithCopy text={tx.hash} maxChars={10} />
+                            </div>
+                          </div>
+                        </div>
+                        {Object.keys(netAssets).length > 0 && (
+                          <div className="mt-1 space-y-1">
+                            {sortedUnits.map(unit => (
+                              <div key={unit} className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {getAssetDisplay(unit, netAssets[unit], formatAda)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {expandedTx === tx.hash && (
+                        <TransactionDetail tx={tx} wallet={wallet} formatAda={formatAda} formatDate={formatDate} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
 
@@ -247,10 +309,10 @@ const Transactions: React.FC<TransactionsProps> = ({ wallet, transactions }) => 
 
       {/* Show loading indicator or count */}
       {filteredTransactions.length > 0 && (
-        <div className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          {itemsToShow < filteredTransactions.length ? (
+        <div className="mt-4 pb-4 text-center text-sm text-gray-500 dark:text-gray-400">
+          {totalShown < filteredTransactions.length ? (
             <div>
-              Showing {itemsToShow} of {filteredTransactions.length} transactions
+              Showing {totalShown} of {filteredTransactions.length} transactions
               <div className="mt-2 text-xs">Scroll down to load more</div>
             </div>
           ) : (

@@ -27,6 +27,8 @@ export interface CreateWalletFormData {
 export interface ImportWalletFormData {
   walletName?: string;
   seedPhrase?: string;
+  seedWords?: { [key: string]: string }; // Store individual word inputs
+  wordCount?: number; // Store selected word count
   network?: 'Mainnet' | 'Preprod';
   password?: string;
 }
@@ -57,11 +59,7 @@ export interface OnboardingState {
   apiKeySetupData: ApiKeySetupData;
 
   // Navigation state
-  lastVisitedRoute?: string;
   stepHistory: OnboardingStep[];
-
-  // Track current route and any route-specific state
-  currentRoute?: string;
 }
 
 // Progress mapping for each step
@@ -111,8 +109,6 @@ export interface OnboardingStorage extends BaseStorage<OnboardingState> {
   clearFormData: (flow?: OnboardingFlow) => Promise<void>;
 
   // Navigation
-  setLastVisitedRoute: (route: string) => Promise<void>;
-  setCurrentRoute: (route: string) => Promise<void>;
   addToStepHistory: (step: OnboardingStep) => Promise<void>;
 }
 
@@ -228,21 +224,6 @@ export const onboardingStorage: OnboardingStorage = {
         };
       }
     });
-  },
-
-  setLastVisitedRoute: async (route: string) => {
-    await storage.set(state => ({
-      ...state,
-      lastVisitedRoute: route,
-    }));
-  },
-
-  setCurrentRoute: async (route: string) => {
-    await storage.set(state => ({
-      ...state,
-      currentRoute: route,
-      lastVisitedRoute: route,
-    }));
   },
 
   addToStepHistory: async (step: OnboardingStep) => {

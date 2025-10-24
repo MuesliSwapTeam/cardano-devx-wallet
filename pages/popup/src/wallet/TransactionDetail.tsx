@@ -22,6 +22,10 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
     return address !== wallet.address;
   };
 
+  // Check if transaction has any references or collaterals
+  const hasReferences = [...(tx.inputs || []), ...(tx.outputs || [])].some(utxo => (utxo as any).reference);
+  const hasCollaterals = [...(tx.inputs || []), ...(tx.outputs || [])].some(utxo => (utxo as any).collateral);
+
   return (
     <div className="border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
       {/* General Info Section */}
@@ -91,24 +95,36 @@ const TransactionDetail: React.FC<TransactionDetailProps> = ({ tx, wallet, forma
       {/* Filter Toggles */}
       <div className="border-b border-gray-200 p-3 dark:border-gray-700">
         <div className="flex gap-2">
-          <button
-            onClick={() => setShowReferences(!showReferences)}
-            className={`rounded px-3 py-1 text-xs transition ${
-              showReferences
-                ? 'bg-purple-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-            }`}>
-            {showReferences ? 'Hide' : 'Show'} References
-          </button>
-          <button
-            onClick={() => setShowCollaterals(!showCollaterals)}
-            className={`rounded px-3 py-1 text-xs transition ${
-              showCollaterals
-                ? 'bg-orange-500 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-            }`}>
-            {showCollaterals ? 'Hide' : 'Show'} Collaterals
-          </button>
+          {hasReferences ? (
+            <button
+              onClick={() => setShowReferences(!showReferences)}
+              className={`rounded px-3 py-1 text-xs transition ${
+                showReferences
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+              }`}>
+              {showReferences ? 'Hide' : 'Show'} References
+            </button>
+          ) : (
+            <span className="rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-medium text-purple-600 shadow-sm dark:border-purple-700/50 dark:bg-purple-900/20 dark:text-purple-400">
+              No References
+            </span>
+          )}
+          {hasCollaterals ? (
+            <button
+              onClick={() => setShowCollaterals(!showCollaterals)}
+              className={`rounded px-3 py-1 text-xs transition ${
+                showCollaterals
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+              }`}>
+              {showCollaterals ? 'Hide' : 'Show'} Collaterals
+            </button>
+          ) : (
+            <span className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-600 shadow-sm dark:border-orange-700/50 dark:bg-orange-900/20 dark:text-orange-400">
+              No Collaterals
+            </span>
+          )}
         </div>
       </div>
 
